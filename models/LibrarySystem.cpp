@@ -159,22 +159,14 @@ int LibrarySystem::countLoansForPatron(int patronId) const {
 }
 
 bool LibrarySystem::isLoanedBy(int itemId, int patronId) const {
-    qDebug() << "[isLoanedBy] Checking itemId =" << itemId
-             << "against patronId =" << patronId;
 
     auto it = loansByItemId_.find(itemId);
 
     if (it == loansByItemId_.end()) {
-        qDebug() << "[isLoanedBy] Item ID NOT FOUND in loan map.";
         return false;
     }
 
-    qDebug() << "[isLoanedBy] Item found, loaned by patron"
-             << it->second.patronId;
-
     bool result = (it->second.patronId == patronId);
-
-    qDebug() << "[isLoanedBy] Loan matches patron? -->" << result;
 
     return result;
 }
