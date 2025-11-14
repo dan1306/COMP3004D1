@@ -31,8 +31,8 @@ HEADERS += \
     gui/CatalogueModel.h
 
 FORMS += \
-    LoginWindow.ui \
-    PatronWindow.ui
+    gui/LoginWindow.ui \
+    gui/PatronWindow.ui
 
 INCLUDEPATH += \
     $$PWD \
