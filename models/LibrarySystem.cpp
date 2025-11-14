@@ -1,5 +1,6 @@
 #include "LibrarySystem.h"
 #include <algorithm>
+#include <QDebug>
 
 namespace hinlibs {
 
@@ -158,10 +159,25 @@ int LibrarySystem::countLoansForPatron(int patronId) const {
 }
 
 bool LibrarySystem::isLoanedBy(int itemId, int patronId) const {
-    auto it = loansByItemId_.find(itemId);
-    return (it != loansByItemId_.end() && it->second.patronId == patronId);
-}
+    qDebug() << "[isLoanedBy] Checking itemId =" << itemId
+             << "against patronId =" << patronId;
 
+    auto it = loansByItemId_.find(itemId);
+
+    if (it == loansByItemId_.end()) {
+        qDebug() << "[isLoanedBy] Item ID NOT FOUND in loan map.";
+        return false;
+    }
+
+    qDebug() << "[isLoanedBy] Item found, loaned by patron"
+             << it->second.patronId;
+
+    bool result = (it->second.patronId == patronId);
+
+    qDebug() << "[isLoanedBy] Loan matches patron? -->" << result;
+
+    return result;
+}
 
 // log of patron transaction operations
 //void LibrarySystem::logUserActivity(int patronID, const std::string& activity) {

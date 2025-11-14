@@ -74,7 +74,7 @@ void PatronWindow::onPlaceHold() {
     const int itemId = catalogueModel_->itemIdAtRow(row);
     if (itemId < 0) return;
 
-    if(system_->isLoanedBy(patron_->id(), itemId)){
+    if(system_->isLoanedBy(itemId, patron_->id())){
         QMessageBox::warning(this, "Place Hold Failed",
                              "You can not place a hold on an item you have already checked-out.");
         return;
