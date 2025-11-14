@@ -1,7 +1,7 @@
 #pragma once
 #include <QMainWindow>
 #include <memory>
-#include "LibrarySystem.h"
+#include "models/LibrarySystem.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class PatronWindow; }

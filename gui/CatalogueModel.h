@@ -2,7 +2,7 @@
 #include <QAbstractTableModel>
 #include <vector>
 #include <memory>
-#include "LibrarySystem.h"
+#include "models/LibrarySystem.h"
 
 class CatalogueModel : public QAbstractTableModel {
     Q_OBJECT
