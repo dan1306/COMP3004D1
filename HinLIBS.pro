@@ -34,6 +34,8 @@ FORMS += \
     gui/LoginWindow.ui \
     gui/PatronWindow.ui
 
+QT += core gui widgets sql
+
 INCLUDEPATH += \
     $$PWD \
     $$PWD/models \
