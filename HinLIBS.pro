@@ -13,6 +13,7 @@ SOURCES += \
     models/VideoGame.cpp \
     models/Magazine.cpp \
     models/LibrarySystem.cpp \
+    models/hinlibs.cpp \
     gui/LoginWindow.cpp \
     gui/PatronWindow.cpp \
     gui/CatalogueModel.cpp
@@ -26,6 +27,7 @@ HEADERS += \
     models/VideoGame.h \
     models/Magazine.h \
     models/LibrarySystem.h \
+    models/hinlibs.h \
     gui/LoginWindow.h \
     gui/PatronWindow.h \
     gui/CatalogueModel.h
