@@ -6,6 +6,7 @@ namespace hinlibs {
 class VideoGame : public Item {
 public:
     VideoGame(
+            int id_,
             const std::string& title,
             const std::string& developer,
             int publicationYear,

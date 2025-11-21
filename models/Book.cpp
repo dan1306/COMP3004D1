@@ -3,13 +3,14 @@
 
 namespace hinlibs {
 
-Book::Book(const std::string& title,
+Book::Book( int id_,
+           const std::string& title,
            const std::string& author,
            int publicationYear,
            BookType type,
            std::optional<std::string> dewey,
            std::optional<std::string> isbn
-           ): Item(title, author, publicationYear, ItemKind::Book), type_(type),
+           ): Item(id_, title, author, publicationYear, ItemKind::Book), type_(type),
 dewey_(std::move(dewey)), isbn_(std::move(isbn)){}
 
 BookType Book::bookType() const noexcept {

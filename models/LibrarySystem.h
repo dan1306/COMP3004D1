@@ -15,11 +15,21 @@
 #include "VideoGame.h"
 #include "Magazine.h"
 
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QDebug>
+
+
 namespace hinlibs {
 
 class LibrarySystem {
 public:
     LibrarySystem();
+
+    // --- DB OPerations --
+    void getUsersFromDB();
+    void getItemsFromDB();
 
     // --- Users ---
     std::shared_ptr<User> findUserByName(const std::string& name) const;
@@ -60,6 +70,7 @@ public:
     static constexpr int LOAN_PERIOD_DAYS = 14;
 
 private:
+    QSqlDatabase db_;
     struct Loan {
         int itemId{};
         int patronId{};

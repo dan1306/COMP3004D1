@@ -10,7 +10,7 @@ enum class BookType { Fiction, NonFiction };
 class Book : public Item {
 public:
     // For NonFiction, provide dewey (e.g., "641.59"). For Fiction, leave std::nullopt.
-    Book(
+    Book( int id_,
          const std::string& title,
          const std::string& author,
          int publicationYear,

@@ -5,8 +5,71 @@
 namespace hinlibs {
 
 LibrarySystem::LibrarySystem() {
+    db_ = QSqlDatabase::addDatabase("QSQLITE");
+    db_.setDatabaseName("db/hinlibs.sqlite3");
+
+
+    if (!db_.open()) {
+        qDebug() << "ERROR: " << db_.lastError();
+        return;
+    } else {
+        qDebug() << "Working";
+    }
+
     seed();
 }
+
+// --- DB operation ---
+
+void LibrarySystem::getUsersFromDB(){
+    QSqlQuery query;
+    query.prepare("SELECT * FROM users");
+
+    if (!query.exec()) {
+        qDebug() << "ERROR:" << query.lastError().text();
+    } else {
+        while(query.next()){
+            int userid_ = query.value("userid_").toInt();
+            std::string name_ = query.value("name_").toString().toStdString();
+            std::string role_ = query.value("role_").toString().toStdString();
+
+            std::shared_ptr<User> user;
+
+            if(role_ == "Patron"){
+                user = std::make_shared<Patron>(name_, userid_);
+            } else if (role_ == "Librarian"){
+                user = std::make_shared<User>(name_, Role::Librarian, userid_);
+            } else if(role_ == "Administrator"){
+               user = std::make_shared<User>(name_, Role::Administrator, userid_);
+            }
+
+            userIdByName_[user->name()] = userid_;
+            usersById_[userid_] = std::move(user);
+
+        }
+    }
+}
+
+void LibrarySystem::getItemsFromDB(){
+
+    QSqlQuery query;
+    query.prepare("SELECT * FROM items");
+
+    if (!query.exec()) {
+        qDebug() << "ERROR:" << query.lastError().text();
+    }else {
+        while(query.next()){
+            int itemid_ = query.value("itemid_").toInt();
+            std::string kind_ = query.value("kind_").toString().toStdString();
+enum class ItemKind   { Book, Movie, VideoGame, Magazine };
+            if(kind_ == "FictionBook" ){
+                items_.push_back(std::make_shared<Book>(itemid_, "The Silent Forest", "J. Rivera", 2016, BookType::Fiction));
+            }
+        }
+    }
+
+}
+
 
 std::shared_ptr<User> LibrarySystem::findUserByName(const std::string& name) const {
     auto it = userIdByName_.find(name);

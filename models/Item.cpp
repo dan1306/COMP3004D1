@@ -2,20 +2,18 @@
 
 namespace hinlibs {
 
-int Item::item_id = 0;
-
 Item::Item(
+            int id_,
             const std::string& title,
             const std::string& creator,
             int publicationYear,
             ItemKind kind
-        ): id_(++item_id),
+        ): id_(id_),
            title_(title),
            creator_(creator),
            publicationYear_(publicationYear),
            kind_(kind),
-           status_(ItemStatus::Available),
-           condition_(Condition::Undamaged){}
+           status_(ItemStatus::Available){}
 
 // Getters
 int Item::id() const noexcept {
@@ -38,9 +36,9 @@ ItemKind Item::kind() const noexcept {
     return kind_;
 }
 
-Condition Item::condition() const noexcept {
-    return condition_;
-}
+//Condition Item::condition() const noexcept {
+//    return condition_;
+//}
 
 ItemStatus Item::status() const noexcept {
     return  status_;
@@ -51,8 +49,8 @@ void Item::setStatus(ItemStatus s) noexcept {
     status_ = s;
 }
 
-void Item::setCondition(Condition c) noexcept {
-    condition_ = c;
-}
+//void Item::setCondition(Condition c) noexcept {
+//    condition_ = c;
+//}
 
 } // namespace hinlibs

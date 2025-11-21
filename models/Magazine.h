@@ -8,6 +8,7 @@ namespace hinlibs {
 class Magazine : public Item {
 public:
     Magazine(
+            int id_,
             const std::string& title,
             const std::string& publisher,
             int publicationYear,
