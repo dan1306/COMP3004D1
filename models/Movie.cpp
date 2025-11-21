@@ -8,8 +8,9 @@ Movie::Movie( int id_,
         const std::string& director,
         int publicationYear,
         const std::string& genre,
-        const std::string& rating
-        ): Item(id_, title, director, publicationYear, ItemKind::Movie),
+        const std::string& rating,
+        ItemStatus circulationstatus
+        ): Item(id_, title, director, publicationYear, ItemKind::Movie, circulationstatus),
     genre_(genre), rating_(rating){}
 
 const std::string& Movie::genre() const noexcept {

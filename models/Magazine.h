@@ -13,7 +13,8 @@ public:
             const std::string& publisher,
             int publicationYear,
             int issueNumber,
-            const QDate& publicationDate
+            const QDate& publicationDate,
+            ItemStatus circulationstatus = ItemStatus::Available
             );
 
     int issueNumber() const noexcept;

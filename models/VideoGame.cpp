@@ -8,9 +8,10 @@ VideoGame::VideoGame( int id_,
         const std::string& developer,
         int publicationYear,
         const std::string& genre,
-        const std::string& rating
+        const std::string& rating,
+        ItemStatus circulationstatus
     )
-    : Item(id_, title, developer, publicationYear, ItemKind::VideoGame),
+    : Item(id_, title, developer, publicationYear, ItemKind::VideoGame, circulationstatus),
       genre_(genre),
       rating_(rating){}
 

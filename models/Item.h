@@ -15,7 +15,9 @@ public:
          const std::string& title,
          const std::string& creator,
          int publicationYear,
-         ItemKind kind
+         ItemKind kind,
+         ItemStatus circulationstatus= ItemStatus::Available
+
         );
 
     virtual ~Item() = default;

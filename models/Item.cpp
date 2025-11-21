@@ -7,13 +7,14 @@ Item::Item(
             const std::string& title,
             const std::string& creator,
             int publicationYear,
-            ItemKind kind
+            ItemKind kind,
+            ItemStatus circulationstatus
         ): id_(id_),
            title_(title),
            creator_(creator),
            publicationYear_(publicationYear),
            kind_(kind),
-           status_(ItemStatus::Available){}
+           status_(circulationstatus){}
 
 // Getters
 int Item::id() const noexcept {
