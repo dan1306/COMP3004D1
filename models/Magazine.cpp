@@ -9,8 +9,9 @@ Magazine::Magazine(
         const std::string& publisher,
         int publicationYear,
         int issueNumber,
-        const QDate& publicationDate
-        ): Item(id_, title, publisher, publicationYear, ItemKind::Magazine),
+        const QDate& publicationDate,
+        ItemStatus circulationstatus
+        ): Item(id_, title, publisher, publicationYear, ItemKind::Magazine, circulationstatus),
 issueNumber_(issueNumber), publicationDate_(publicationDate){};
 
 int Magazine::issueNumber() const noexcept {

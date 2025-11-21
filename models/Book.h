@@ -16,7 +16,8 @@ public:
          int publicationYear,
          BookType type,
          std::optional<std::string> dewey = std::nullopt,
-         std::optional<std::string> isbn = std::nullopt
+         std::optional<std::string> isbn = std::nullopt,
+         ItemStatus circulationstatus = ItemStatus::Available
         );
 
     BookType bookType() const noexcept;

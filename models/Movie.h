@@ -12,7 +12,8 @@ public:
             const std::string& director,
             int publicationYear,
             const std::string& genre,
-            const std::string& rating
+            const std::string& rating,
+            ItemStatus circulationstatus = ItemStatus::Available
          );
 
     const std::string& genre() const noexcept;

@@ -50,25 +50,91 @@ void LibrarySystem::getUsersFromDB(){
     }
 }
 
-void LibrarySystem::getItemsFromDB(){
+void LibrarySystem::getItemsFromDB() {
 
     QSqlQuery query;
     query.prepare("SELECT * FROM items");
 
     if (!query.exec()) {
         qDebug() << "ERROR:" << query.lastError().text();
-    }else {
-        while(query.next()){
+    } else {
+        while (query.next()) {
+
             int itemid_ = query.value("itemid_").toInt();
             std::string kind_ = query.value("kind_").toString().toStdString();
-enum class ItemKind   { Book, Movie, VideoGame, Magazine };
-            if(kind_ == "FictionBook" ){
-                items_.push_back(std::make_shared<Book>(itemid_, "The Silent Forest", "J. Rivera", 2016, BookType::Fiction));
+            std::string title_ = query.value("title_").toString().toStdString();
+            std::string creator_ = query.value("creator_").toString().toStdString();
+            int publicationYear_ = query.value("publicationYear_").toInt();
+
+            std::optional<std::string> dewey_ = std::nullopt;
+            QVariant deweyVal = query.value("dewey_");
+            if (!deweyVal.isNull()) {
+                dewey_ = deweyVal.toString().toStdString();
+            }
+
+            std::optional<std::string> isbn_ = std::nullopt;
+            QVariant isbnVal = query.value("isbn_");
+            if (!isbnVal.isNull()) {
+                isbn_ = isbnVal.toString().toStdString();
+            }
+
+            int issueNumber_ = -1;
+            QVariant issueNumberVal = query.value("issueNumber_");
+            if (!issueNumberVal.isNull()) {
+                issueNumber_ = issueNumberVal.toInt();
+            }
+
+            QDate publicationDate_;
+            QVariant publicationDateVal = query.value("publicationDate_");
+            if (!publicationDateVal.isNull()) {
+                QString pubString_ = publicationDateVal.toString();
+                publicationDate_ = QDate::fromString(pubString_, "yyyy-MM-dd");
+            }
+
+            std::string genre_ = "";
+            QVariant genreVal = query.value("genre_");
+            if (!genreVal.isNull()) {
+                genre_ = genreVal.toString().toStdString();
+            }
+
+            std::string rating_ = "";
+            QVariant ratingVal = query.value("rating_");
+            if (!ratingVal.isNull()) {
+                rating_ = ratingVal.toString().toStdString();
+            }
+
+            std::string status_ = query.value("status_").toString().toStdString();
+            ItemStatus itemStatus;
+            if (status_ == "CheckedOut") {
+                itemStatus = ItemStatus::CheckedOut;
+            } else {
+                itemStatus = ItemStatus::Available;
+            }
+
+            if (kind_ == "FictionBook") {
+
+                items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_,BookType::Fiction, dewey_, isbn_, itemStatus));
+
+            } else if (kind_ == "NonFictionBook") {
+
+                items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_, BookType::NonFiction, dewey_, isbn_, itemStatus));
+
+            } else if (kind_ == "Magazine") {
+
+                items_.push_back(std::make_shared<Magazine>(itemid_, title_, creator_, publicationYear_, issueNumber_, publicationDate_, itemStatus));
+
+            } else if (kind_ == "Movie") {
+
+                items_.push_back(std::make_shared<Movie>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
+
+            } else if (kind_ == "VideoGame") {
+
+                items_.push_back(std::make_shared<VideoGame>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
             }
         }
     }
-
 }
+
 
 
 std::shared_ptr<User> LibrarySystem::findUserByName(const std::string& name) const {
