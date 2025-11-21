@@ -239,6 +239,47 @@ bool LibrarySystem::returnItem(int patronId, int itemId) {
     if (it == loansByItemId_.end()) return false;
     if (it->second.patronId != patronId) return false;
 
+    QSqlQuery query1;
+    query1.prepare("SELECT userid_ FROM loans WHERE itemid_ = :itemid_ AND userid_ = :patronId_");
+
+    query1.bindValue(":itemid_", itemId);
+    query1.bindValue(":patronId_", patronId);
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
+        return false;
+    }
+
+    if(!query1.next()){
+        // item has not been borrowed or patron isnt the one who borrowed item
+        return false;
+    }
+
+    int userIDwhoBorrowed = query1.value("userid_").toInt();
+
+    if(userIDwhoBorrowed != patronId){
+        // not  the patron  of interest
+        return false;
+    }
+
+    QSqlQuery query2;
+    query2.prepare("DELETE FROM loans WHERE itemid_ = :itemid_ AND userid_ = :patronId");
+    query2.bindValue(":itemid_", itemId);
+    query2.bindValue(":patronId_", patronId);
+    if (!query2.exec()) {
+        qDebug() << "ERROR:" << query2.lastError().text();
+        return false;
+    }
+
+
+    QSqlQuery query3;
+    query3.prepare("UPDATE items SET status_='Available' WHERE itemid_ = :itemid_");
+    query3.bindValue(":itemid_", itemId);
+    if (!query3.exec()) {
+        qDebug() << "ERROR:" << query3.lastError().text();
+        return false;
+    }
+
+
     loansByItemId_.erase(it);
 
     // D1 behavior: simply mark available (no auto-assign to next hold)
