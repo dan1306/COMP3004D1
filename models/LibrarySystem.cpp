@@ -262,7 +262,7 @@ bool LibrarySystem::returnItem(int patronId, int itemId) {
     }
 
     QSqlQuery query2;
-    query2.prepare("DELETE FROM loans WHERE itemid_ = :itemid_ AND userid_ = :patronId");
+    query2.prepare("DELETE FROM loans WHERE itemid_ = :itemid_ AND userid_ = :patronId_");
     query2.bindValue(":itemid_", itemId);
     query2.bindValue(":patronId_", patronId);
     if (!query2.exec()) {
@@ -342,44 +342,117 @@ LibrarySystem::getAccountLoans(int patronId, const QDate& today) const {
 std::vector<LibrarySystem::AccountHold>
 LibrarySystem::getAccountHolds(int patronId) const {
     std::vector<AccountHold> out;
-    for (const auto& kv : holdsByItemId_) {
-        int itemId = kv.first;
-        const auto& queue = kv.second;
-        auto it = std::find(queue.begin(), queue.end(), patronId);
-        if (it != queue.end()) {
-            auto item = getItemById(itemId);
-            if (!item) continue;
-            AccountHold ah;
-            ah.itemId = itemId;
-            ah.title = item->title();
-            ah.queuePosition = static_cast<int>(std::distance(queue.begin(), it)) + 1;
-            out.push_back(std::move(ah));
-        }
+
+
+    QSqlQuery query1;
+    query1.prepare("SELECT itemid_ FROM loans WHERE userid_= :patronId");
+    query1.bindValue(":patronId", patronId);
+
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
+        return out;
     }
+
+    while (query1.next()) {
+
+        int itemid_ = query1.value("itemid_").toInt();
+
+        QSqlQuery query2;
+        query2.prepare("SELECT userid_ FROM loans WHERE itemid_= :itemid_ ORDER BY loanid_ ASC");
+        query2.bindValue(":itemid_", itemid_);
+
+        if (!query2.exec()) {
+            qDebug() << "ERROR:" << query1.lastError().text();
+            continue;
+        }
+
+        int queuePos = 1;
+        while(query2.next()){
+            if(query2.value("userid_").toInt() == patronId){
+                QSqlQuery query3;
+                query3.prepare("SELECT itemid_, title_ FROM items WHERE itemid_ = :itemid_");
+                query3.bindValue(":itemid_", itemid_);
+                if (!query3.exec()) {
+                    qDebug() << "ERROR:" << query3.lastError().text();
+                    continue;
+                }
+
+                if(query3.next()){
+                    AccountHold foundItemQueuePos;
+                    foundItemQueuePos.itemId = query3.value("itemid_").toUInt();
+                    foundItemQueuePos.title = query3.value("title_").toString().toStdString();
+                    foundItemQueuePos.queuePosition = queuePos;
+                    out.push_back(std::move(foundItemQueuePos));
+                }
+
+
+
+                break;
+            }
+            queuePos++;
+        }
+
+    }
+
     return out;
 }
-
 // --- helpers ---
 
 int LibrarySystem::countLoansForPatron(int patronId) const {
-    int count = 0;
-    for (const auto& kv : loansByItemId_) {
-        if (kv.second.patronId == patronId) ++count;
+//    int count = 0;
+//    for (const auto& kv : loansByItemId_) {
+//        if (kv.second.patronId == patronId) ++count;
+//    }
+//    return count;
+    QSqlQuery query1;
+    query1.prepare("SELECT COUNT(*) AS num_of_loans FROM loans WHERE userid_= :patronId");
+    query1.bindValue(":patronId", patronId);
+
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
+        return 0;
     }
-    return count;
+
+    if(!query1.next()){
+        return 0;
+    }
+
+    return query1.value("num_of_loans").toInt();
+
 }
 
 bool LibrarySystem::isLoanedBy(int itemId, int patronId) const {
 
-    auto it = loansByItemId_.find(itemId);
+//    auto it = loansByItemId_.find(itemId);
 
-    if (it == loansByItemId_.end()) {
+//    if (it == loansByItemId_.end()) {
+//        return false;
+//    }
+
+//    bool result = (it->second.patronId == patronId);
+
+//    return result;
+    QSqlQuery query1;
+    query1.prepare("SELECT userid_ FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
+    query1.bindValue(":itemId", itemId);
+    query1.bindValue(":patronId", patronId);
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
         return false;
     }
 
-    bool result = (it->second.patronId == patronId);
+    if(!query1.next()){
+        return false;
+    }
 
-    return result;
+    int userIDwhoBorrowed = query1.value("userid_").toInt();
+
+    if(userIDwhoBorrowed != patronId){
+        return false;
+    }
+
+    return true;
+
 }
 
 // log of patron transaction operations
