@@ -3,14 +3,14 @@
 
 namespace hinlibs {
 
-VideoGame::VideoGame(
+VideoGame::VideoGame( int id_,
         const std::string& title,
         const std::string& developer,
         int publicationYear,
         const std::string& genre,
         const std::string& rating
     )
-    : Item(title, developer, publicationYear, ItemKind::VideoGame),
+    : Item(id_, title, developer, publicationYear, ItemKind::VideoGame),
       genre_(genre),
       rating_(rating){}
 

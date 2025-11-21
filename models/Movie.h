@@ -7,6 +7,7 @@ namespace hinlibs {
 class Movie : public Item {
 public:
     Movie(
+            int id_,
             const std::string& title,
             const std::string& director,
             int publicationYear,

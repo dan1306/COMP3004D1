@@ -3,13 +3,13 @@
 
 namespace hinlibs {
 
-Movie::Movie(
+Movie::Movie( int id_,
         const std::string& title,
         const std::string& director,
         int publicationYear,
         const std::string& genre,
         const std::string& rating
-        ): Item(title, director, publicationYear, ItemKind::Movie),
+        ): Item(id_, title, director, publicationYear, ItemKind::Movie),
     genre_(genre), rating_(rating){}
 
 const std::string& Movie::genre() const noexcept {

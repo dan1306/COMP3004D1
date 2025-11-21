@@ -7,7 +7,7 @@ enum class Role { Patron, Librarian, Administrator };
 
 class User {
 public:
-    User(std::string name, Role role);
+    User(std::string name, Role role, int id_);
     virtual ~User() = default;
 
     int id() const noexcept { return id_; }
@@ -15,7 +15,6 @@ public:
     Role role() const noexcept { return role_; }
 
 protected:
-    static int user_id;
     int id_;
     std::string name_;
     Role role_;

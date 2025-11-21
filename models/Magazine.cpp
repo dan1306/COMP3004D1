@@ -4,12 +4,13 @@
 namespace hinlibs {
 
 Magazine::Magazine(
+        int id_,
         const std::string& title,
         const std::string& publisher,
         int publicationYear,
         int issueNumber,
         const QDate& publicationDate
-        ): Item(title, publisher, publicationYear, ItemKind::Magazine),
+        ): Item(id_, title, publisher, publicationYear, ItemKind::Magazine),
 issueNumber_(issueNumber), publicationDate_(publicationDate){};
 
 int Magazine::issueNumber() const noexcept {
