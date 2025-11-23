@@ -16,7 +16,8 @@ LibrarySystem::LibrarySystem() {
         qDebug() << "Working";
     }
 
-    seed();
+    getUsersFromDB();
+    getItemsFromDB();
 }
 
 // --- DB operation ---
@@ -138,6 +139,7 @@ void LibrarySystem::getItemsFromDB() {
 
 
 std::shared_ptr<User> LibrarySystem::findUserByName(const std::string& name) const {
+
     auto it = userIdByName_.find(name);
     if (it == userIdByName_.end()) return nullptr;
     auto it2 = usersById_.find(it->second);
@@ -153,6 +155,7 @@ std::shared_ptr<Patron> LibrarySystem::getPatronById(int patronId) const {
 }
 
 std::shared_ptr<Item> LibrarySystem::getItemById(int itemId) const {
+
     for (auto& it : items_) {
         if (it->id() == itemId) return it;
     }
@@ -162,142 +165,433 @@ std::shared_ptr<Item> LibrarySystem::getItemById(int itemId) const {
 // --- Patron operations ---
 
 bool LibrarySystem::borrowItem(int patronId, int itemId) {
-    auto patron = getPatronById(patronId);
-    if (!patron) return false;
 
-    auto item = getItemById(itemId);
-    if (!item) return false;
-    if (item->status() != ItemStatus::Available) return false;
+    QSqlQuery query1;
 
-    // Enforce queue fairness if holds exist
-    auto hit = holdsByItemId_.find(itemId);
-    if (hit != holdsByItemId_.end() && !hit->second.empty()) {
-        if (hit->second.front() != patronId) {
-            // someone else is first in line
+    query1.prepare("SELECT * FROM users WHERE userid_ = :patronId");
+    query1.bindValue(":patronId", patronId);
+    if (!query1.exec() || !query1.next()) return false;
+    if(query1.value("role_").toString().toStdString() != "Patron") return false;
+
+
+
+    QSqlQuery query2;
+    query2.prepare("SELECT * FROM items WHERE itemid_ = :itemId");
+    query2.bindValue(":itemId", itemId);
+    if (!query2.exec() || !query2.next()) return false;
+    if(query2.value("status_").toString().toStdString() != "Available") return false;
+
+    QSqlQuery query3;
+    query3.prepare("SELECT * FROM holds WHERE itemid_ = :itemId ORDER BY holdid_ ASC");
+    query3.bindValue(":itemId", itemId);
+    if(!query3.exec()) return false;
+    if (query3.next()) {
+        if (query3.value("userid_").toInt() != patronId) {
             return false;
-        } else {
-            // the borrower is first in queue -> pop them
-            hit->second.pop_front();
         }
+        QSqlQuery query4;
+        query4.prepare("DELETE FROM holds WHERE itemid_ = :itemId AND userid_ = :patronId");
+        query4.bindValue(":itemId", itemId);
+        query4.bindValue(":patronId", patronId);
+        if (!query4.exec()) return false;
+
+    }
+
+    QSqlQuery query5;
+    query5.prepare("SELECT * FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
+    query5.bindValue(":itemId", itemId);
+    query5.bindValue(":patronId", patronId);
+
+    if (!query5.exec()) return false;
+
+    if (query5.next()) {
+        return false; // Cannot borrow the same item twice
     }
 
     if (countLoansForPatron(patronId) >= MAX_ACTIVE_LOANS) return false;
+    QSqlQuery query6;
 
-    item->setStatus(ItemStatus::CheckedOut);
-    QDate today = QDate::currentDate();
-    Loan loan{ itemId, patronId, today, today.addDays(LOAN_PERIOD_DAYS) };
+    query6.prepare("UPDATE items SET status_ = 'CheckedOut' WHERE itemid_ = :itemId");
+    query6.bindValue(":itemId", itemId);
+    if (!query6.exec()) return false;
+
+    QSqlQuery query7;
+
+    query7.prepare("INSERT INTO loans (userid_, itemid_, checkoutDate_, dueDate_) "
+                   "VALUES (:patronId, :itemId, :checkoutDate_, :dueDate_)");
+    QString checkoutDate = QDate::currentDate().toString("yyyy-MM-dd");
+    QString dueDate =  QDate::currentDate().addDays(LOAN_PERIOD_DAYS).toString("yyyy-MM-dd");
+    query7.bindValue(":checkoutDate_", checkoutDate);
+    query7.bindValue(":dueDate_", dueDate);
+    query7.bindValue(":patronId", patronId);
+    query7.bindValue(":itemId", itemId);
+    if (!query7.exec()) return false;
+
+
+    for (auto& i : items_) {
+        if (i->id() == itemId) {
+            i->setStatus(ItemStatus::CheckedOut);
+            break;
+        }
+    }
+
+    Loan loan{ itemId, patronId, QDate::currentDate(), QDate::currentDate().addDays(LOAN_PERIOD_DAYS) };
     loansByItemId_[itemId] = loan;
+
     return true;
+
 }
 
 bool LibrarySystem::returnItem(int patronId, int itemId) {
-    auto item = getItemById(itemId);
-    if (!item) return false;
+
+
+    QSqlQuery query1;
+
+    query1.prepare("SELECT * FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
+    query1.bindValue(":itemId", itemId);
+    query1.bindValue(":patronId", patronId);
+    if (!query1.exec() || !query1.next()) {
+        qDebug() << "Error:" << query1.lastError().text();
+        return false;
+    }
+
+    QSqlQuery query2;
+    query2.prepare("DELETE FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
+    query2.bindValue(":itemId", itemId);
+    query2.bindValue(":patronId", patronId);
+    if (!query2.exec()) {
+        qDebug() << "Error:" << query2.lastError().text();
+        return false;
+    }
+
+    QSqlQuery query3;
+    query3.prepare("UPDATE items SET status_ = :status_ WHERE itemid_ = :itemId");
+    query3.bindValue(":status_", "Available");
+    query3.bindValue(":itemId", itemId);
+    if (!query3.exec()) {
+        qDebug() << "Error:" << query3.lastError().text();
+        return false;
+    }
 
     auto it = loansByItemId_.find(itemId);
-    if (it == loansByItemId_.end()) return false;
-    if (it->second.patronId != patronId) return false;
+    if (it != loansByItemId_.end()) {
+        loansByItemId_.erase(it);
+    }
 
-    loansByItemId_.erase(it);
+    for (auto& itemPtr : items_) {
+        if (itemPtr->id() == itemId) {
+            itemPtr->setStatus(ItemStatus::Available);
+            break;
+        }
+    }
 
-    // D1 behavior: simply mark available (no auto-assign to next hold)
-    item->setStatus(ItemStatus::Available);
     return true;
+
+
 }
 
+//bool LibrarySystem::placeHold(int patronId, int itemId) {
+
+//        QSqlQuery query1;
+//        query1.prepare("SELECT userid_, role_ FROM users WHERE userid_ = :patronId");
+//        query1.bindValue(":patronId", patronId);
+//        if (!query1.exec() || !query1.next()) {
+//            return false;
+//        }
+
+//        std::string role_ = query1.value("role_").toString().toStdString();
+
+//        if(role_ != "Patron"){
+//            return false;
+//        }
+
+//        QSqlQuery query2;
+
+//        query2.prepare("SELECT status_ FROM items WHERE itemid_ = :itemId");
+//        query2.bindValue(":itemId", itemId);
+//        if (!query2.exec() || !query2.next()) {
+//            return false;
+//        }
+
+//        std::string status_ = query2.value("status_").toString().toStdString();
+
+//        if ( status_ != "CheckedOut") return false;
+
+//        QSqlQuery amIfirstInTheHoldQueue;
+
+//        amIfirstInTheHoldQueue.prepare("SELECT * FROM holds where itemid_ = :itemId  ORDER BY holdid_ ASC");
+//        amIfirstInTheHoldQueue.bindValue(":itemId", itemId);
+
+//        if(!amIfirstInTheHoldQueue.exec()) return false;
+//        if (status_ == "Available") {
+//            if (amIfirstInTheHoldQueue.next()) {
+//                if (amIfirstInTheHoldQueue.value("userid_").toInt() == patronId) {
+//                    }
+//                }
+//        }
+
+
+
+//        QSqlQuery query3;
+
+//        query3.prepare("SELECT userid_, itemid_ FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
+//        query3.bindValue(":itemId", itemId);
+//        query3.bindValue(":patronId", patronId);
+//        if (query3.exec() && query3.next()) {
+//            return false;
+//        }
+
+
+//        QSqlQuery query4;
+
+//        query4.prepare("SELECT userid_, itemid_ FROM holds WHERE itemid_ = :itemId AND userid_ = :patronId");
+//        query4.bindValue(":itemId", itemId);
+//        query4.bindValue(":patronId", patronId);
+//        if (query4.exec() && query4.next()) {
+//            return false;
+//        }
+
+//        QSqlQuery query5;
+//        query5.prepare("INSERT INTO holds (itemid_, userid_) VALUES (:itemId, :patronId)");
+//        query5.bindValue(":itemId", itemId);
+//        query5.bindValue(":patronId", patronId);
+
+//        if (!query5.exec()) {
+//             qDebug() << "Error:" << query5.lastError().text();
+//             return false;
+//        }
+
+//        return true;
+
+//}
+
+// this one is a bit complicated the one above I  tried to implement this logic but now it is just there as reference
 bool LibrarySystem::placeHold(int patronId, int itemId) {
-    auto patron = getPatronById(patronId);
-    if (!patron) return false;
 
-    auto item = getItemById(itemId);
-    if (!item) return false;
+        QSqlQuery query1;
+        query1.prepare("SELECT userid_, role_ FROM users WHERE userid_ = :patronId");
+        query1.bindValue(":patronId", patronId);
+        if (!query1.exec() || !query1.next()) {
+            return false; // User not found
+        }
 
-    if(isLoanedBy(itemId, patronId)) return false;
-    // Holds allowed only on checked-out items
-    if (item->status() != ItemStatus::CheckedOut) return false;
+        std::string role_ = query1.value("role_").toString().toStdString();
 
-    auto& queue = holdsByItemId_[itemId];
-    auto it = std::find(queue.begin(), queue.end(), patronId);
-    if (it != queue.end()) return false; // already in queue
+        if(role_ != "Patron"){
+            return false; // Must be a Patron
+        }
 
-    queue.push_back(patronId);
-    return true;
+        QSqlQuery query2;
+
+        query2.prepare("SELECT status_ FROM items WHERE itemid_ = :itemId");
+        query2.bindValue(":itemId", itemId);
+        if (!query2.exec() || !query2.next()) {
+            return false; // Item not found
+        }
+
+        std::string status_ = query2.value("status_").toString().toStdString();
+
+        // Check if the item is Available with no holds
+        if ( status_ == "Available") {
+            QSqlQuery checkHolds;
+            checkHolds.prepare("SELECT holdid_ FROM holds WHERE itemid_ = :itemId");
+            checkHolds.bindValue(":itemId", itemId);
+            if (!checkHolds.exec()) return false;
+
+            // If item is Available AND no holds exist, the item is free to borrow. Cannot place a hold.
+            if (!checkHolds.next()) {
+                return false;
+            }
+        }
+
+        // If status is CheckedOut OR status is Available with holds, continue to place the new hold.
+
+        QSqlQuery query3;
+        // Check if patron already has the item on loan
+        query3.prepare("SELECT userid_, itemid_ FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
+        query3.bindValue(":itemId", itemId);
+        query3.bindValue(":patronId", patronId);
+        if (query3.exec() && query3.next()) {
+            return false;
+        }
+
+
+        QSqlQuery query4;
+        // Check if patron already has an active hold on this item
+        query4.prepare("SELECT userid_, itemid_ FROM holds WHERE itemid_ = :itemId AND userid_ = :patronId");
+        query4.bindValue(":itemId", itemId);
+        query4.bindValue(":patronId", patronId);
+        if (query4.exec() && query4.next()) {
+            return false;
+        }
+
+        QSqlQuery query5;
+        // Insert the new hold
+        query5.prepare("INSERT INTO holds (itemid_, userid_) VALUES (:itemId, :patronId)");
+        query5.bindValue(":itemId", itemId);
+        query5.bindValue(":patronId", patronId);
+
+        if (!query5.exec()) {
+             qDebug() << "Error:" << query5.lastError().text();
+             return false;
+        }
+
+        return true;
+
 }
+
+
+
+
+
 
 bool LibrarySystem::cancelHold(int patronId, int itemId) {
-    auto it = holdsByItemId_.find(itemId);
-    if (it == holdsByItemId_.end()) return false;
+    QSqlQuery query1;
+    query1.prepare("SELECT itemid_, userid_ FROM holds WHERE userid_ = :patronId  AND itemid_ = :itemId");
+    query1.bindValue(":patronId", patronId);
+    query1.bindValue(":itemId", itemId);
 
-    auto& queue = it->second;
-    auto qit = std::find(queue.begin(), queue.end(), patronId);
-    if (qit == queue.end()) return false;
+    if(!query1.exec() || !query1.next()){
+        return false;
+    }
 
-    queue.erase(qit); // positions shift automatically
-    // If queue becomes empty, we can optionally erase the entry; not required.
-    if (queue.empty()) holdsByItemId_.erase(it);
+    QSqlQuery query2;
+    query2.prepare("DELETE FROM holds WHERE userid_ = :patronId AND itemid_ = :itemId");
+    query2.bindValue(":patronId", patronId);
+    query2.bindValue(":itemId", itemId);
+
+    if(!query2.exec()){
+        return false;
+    }
+
     return true;
+
+
 }
 
 std::vector<LibrarySystem::AccountLoan>
 LibrarySystem::getAccountLoans(int patronId, const QDate& today) const {
     std::vector<AccountLoan> out;
-    for (const auto& kv : loansByItemId_) {
-        const auto& loan = kv.second;
-        if (loan.patronId == patronId) {
-            auto item = getItemById(loan.itemId);
-            if (!item) continue;
-            AccountLoan al;
-            al.itemId = loan.itemId;
-            al.title = item->title();
-            al.dueDate = loan.due;
-            al.daysRemaining = today.daysTo(loan.due);
-            out.push_back(std::move(al));
-        }
+    QSqlQuery query1;
+    query1.prepare("SELECT l.dueDate_, i.itemid_, i.title_ FROM loans l JOIN items i ON i.itemid_ = l.itemid_ WHERE l.userid_ = :patronId");
+    query1.bindValue(":patronId", patronId);
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
+        return out;
     }
-    return out;
+
+      while (query1.next()) {
+          AccountLoan al;
+          al.itemId = query1.value("itemid_").toInt();
+          al.title = query1.value("title_").toString().toStdString();
+          QDate dueDate = query1.value("dueDate_").toDate();
+          al.dueDate = dueDate;
+          al.daysRemaining = today.daysTo(dueDate);
+
+          out.push_back(std::move(al));
+      }
+
+      return out;
 }
 
 std::vector<LibrarySystem::AccountHold>
 LibrarySystem::getAccountHolds(int patronId) const {
     std::vector<AccountHold> out;
-    for (const auto& kv : holdsByItemId_) {
-        int itemId = kv.first;
-        const auto& queue = kv.second;
-        auto it = std::find(queue.begin(), queue.end(), patronId);
-        if (it != queue.end()) {
-            auto item = getItemById(itemId);
-            if (!item) continue;
-            AccountHold ah;
-            ah.itemId = itemId;
-            ah.title = item->title();
-            ah.queuePosition = static_cast<int>(std::distance(queue.begin(), it)) + 1;
-            out.push_back(std::move(ah));
-        }
+
+
+    QSqlQuery query1;
+    query1.prepare("SELECT itemid_ FROM holds WHERE userid_= :patronId");
+    query1.bindValue(":patronId", patronId);
+
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
+        return out;
     }
+
+    while (query1.next()) {
+
+        int itemid_ = query1.value("itemid_").toInt();
+
+        QSqlQuery query2;
+        query2.prepare("SELECT userid_ FROM holds WHERE itemid_= :itemid_ ORDER BY holdid_ ASC");
+        query2.bindValue(":itemid_", itemid_);
+
+        if (!query2.exec()) {
+            qDebug() << "ERROR:" << query1.lastError().text();
+            continue;
+        }
+
+        int queuePos = 1;
+        while(query2.next()){
+            if(query2.value("userid_").toInt() == patronId){
+                QSqlQuery query3;
+                query3.prepare("SELECT itemid_, title_ FROM items WHERE itemid_ = :itemid_");
+                query3.bindValue(":itemid_", itemid_);
+                if (!query3.exec()) {
+                    qDebug() << "ERROR:" << query3.lastError().text();
+                    continue;
+                }
+
+                if(query3.next()){
+                    AccountHold foundItemQueuePos;
+                    foundItemQueuePos.itemId = query3.value("itemid_").toUInt();
+                    foundItemQueuePos.title = query3.value("title_").toString().toStdString();
+                    foundItemQueuePos.queuePosition = queuePos;
+                    out.push_back(std::move(foundItemQueuePos));
+                }
+
+
+
+                break;
+            }
+            queuePos++;
+        }
+
+    }
+
     return out;
 }
-
 // --- helpers ---
 
 int LibrarySystem::countLoansForPatron(int patronId) const {
-    int count = 0;
-    for (const auto& kv : loansByItemId_) {
-        if (kv.second.patronId == patronId) ++count;
+    QSqlQuery query1;
+    query1.prepare("SELECT COUNT(*) AS num_of_loans FROM loans WHERE userid_= :patronId");
+    query1.bindValue(":patronId", patronId);
+
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
+        return 0;
     }
-    return count;
+
+    if(!query1.next()){
+        return 0;
+    }
+
+    return query1.value("num_of_loans").toInt();
+
 }
 
 bool LibrarySystem::isLoanedBy(int itemId, int patronId) const {
-
-    auto it = loansByItemId_.find(itemId);
-
-    if (it == loansByItemId_.end()) {
+    QSqlQuery query1;
+    query1.prepare("SELECT userid_ FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
+    query1.bindValue(":itemId", itemId);
+    query1.bindValue(":patronId", patronId);
+    if (!query1.exec()) {
+        qDebug() << "ERROR:" << query1.lastError().text();
         return false;
     }
 
-    bool result = (it->second.patronId == patronId);
+    if(!query1.next()){
+        return false;
+    }
 
-    return result;
+    int userIDwhoBorrowed = query1.value("userid_").toInt();
+
+    if(userIDwhoBorrowed != patronId){
+        return false;
+    }
+
+    return true;
 }
 
 // log of patron transaction operations
@@ -316,62 +610,5 @@ bool LibrarySystem::isLoanedBy(int itemId, int patronId) const {
 //    return empty;
 //};
 
-
-
-
-
-// --- seed data ---
-
-void LibrarySystem::seed() {
-    // Users: 5 patrons + 1 librarian + 1 admin
-    // IDs: 1..7
-    auto addUser = [&](std::shared_ptr<User> u) {
-        int id = u->id(); // id auto generated by user constructor
-        userIdByName_[u->name()] = id;
-        usersById_[id] = std::move(u);
-    };
-
-    addUser(std::make_shared<Patron>("Alice"));
-    addUser(std::make_shared<Patron>("Bob"));
-    addUser(std::make_shared<Patron>("Carmen"));
-    addUser(std::make_shared<Patron>("Dinesh"));
-    addUser(std::make_shared<Patron>("Eve"));
-    addUser(std::make_shared<User>("Librarian", Role::Librarian));
-    addUser(std::make_shared<User>("Admin", Role::Administrator));
-
-    // Items: total 20
-
-    // 5 Fiction books
-    items_.push_back(std::make_shared<Book>("The Silent Forest", "J. Rivera", 2016, BookType::Fiction));
-    items_.push_back(std::make_shared<Book>("City of Glass", "P. Daniels", 2010, BookType::Fiction));
-    items_.push_back(std::make_shared<Book>("North Star", "A. Patel", 2018, BookType::Fiction));
-    items_.push_back(std::make_shared<Book>("Shadows & Light", "M. Hassan", 2021, BookType::Fiction));
-    items_.push_back(std::make_shared<Book>("The Last Harbor", "K. Wong", 2012, BookType::Fiction));
-
-    // 5 Non-fiction books (with Dewey)
-    items_.push_back(std::make_shared<Book>("Quantum Realities", "L. Chen", 2019, BookType::NonFiction, std::string("530.12")));
-    items_.push_back(std::make_shared<Book>("Creative Cooking", "R. Singh", 2015, BookType::NonFiction, std::string("641.59")));
-    items_.push_back(std::make_shared<Book>("World History Abridged", "T. Romero", 2013, BookType::NonFiction, std::string("909.07")));
-    items_.push_back(std::make_shared<Book>("Behavioral Economics", "S. Ahmed", 2017, BookType::NonFiction, std::string("330.01")));
-    items_.push_back(std::make_shared<Book>("Astronomy 101", "C. Martins", 2020, BookType::NonFiction, std::string("520.1")));
-
-    // 3 Magazines (issue + pub date)
-    items_.push_back(std::make_shared<Magazine>("Tech Monthly", "TechHouse", 2024, 142, QDate(2024, 9, 1)));
-    items_.push_back(std::make_shared<Magazine>("Health Weekly", "WellnessPub", 2025, 27, QDate(2025, 10, 15)));
-    items_.push_back(std::make_shared<Magazine>("Art & Design", "Canvas Press", 2025, 5, QDate(2025, 7, 20)));
-
-    // 3 Movies (genre + rating)
-    items_.push_back(std::make_shared<Movie>("Through the Mist", "I. Novak", 2014, "Drama", "PG-13"));
-    items_.push_back(std::make_shared<Movie>("Deep Orbit", "G. Adebayo", 2022, "Sci-Fi", "PG-13"));
-    items_.push_back(std::make_shared<Movie>("Hidden Trail", "S. Yamamoto", 2008, "Thriller", "R"));
-
-    // 4 Video Games (genre + rating)
-    items_.push_back(std::make_shared<VideoGame>("Starfall Odyssey", "NebulaWorks", 2023, "Action RPG", "T"));
-    items_.push_back(std::make_shared<VideoGame>("Garden Realms", "BloomSoft", 2020, "Simulation", "E"));
-    items_.push_back(std::make_shared<VideoGame>("Cipher Run", "VoxelForge", 2019, "Platformer", "E10+"));
-    items_.push_back(std::make_shared<VideoGame>("Kings of Aether", "Crown Labs", 2017, "Strategy", "T"));
-
-    // All items start Available by default (in Item base)
-}
 
 } // namespace hinlibs

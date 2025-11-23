@@ -43,6 +43,18 @@ INCLUDEPATH += \
     $$PWD/models \
     $$PWD/gui
 
+
+// need to find a better alternative to this for the DB
+DB_FILES = db/hinlibs.sqlite3
+
+for(file, DB_FILES) {
+    COPIED_DB = $$OUT_PWD/$$file
+    DBDIR = $$dirname(COPIED_DB)
+    !exists($$DBDIR) {
+        system(mkdir -p $$DBDIR)
+    }
+    system(cp $$PWD/$$file $$COPIED_DB)
+}
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
