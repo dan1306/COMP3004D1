@@ -1,7 +1,7 @@
 #include "LibrarySystem.h"
 #include <algorithm>
 #include <QDebug>
-
+#include <functional>
 namespace hinlibs {
 
 LibrarySystem::LibrarySystem() {
@@ -166,6 +166,8 @@ std::shared_ptr<Item> LibrarySystem::getItemById(int itemId) const {
 
 bool LibrarySystem::borrowItem(int patronId, int itemId) {
 
+    if (countLoansForPatron(patronId) >= MAX_ACTIVE_LOANS) return false;
+
     QSqlQuery query1;
 
     query1.prepare("SELECT * FROM users WHERE userid_ = :patronId");
@@ -208,7 +210,7 @@ bool LibrarySystem::borrowItem(int patronId, int itemId) {
         return false; // Cannot borrow the same item twice
     }
 
-    if (countLoansForPatron(patronId) >= MAX_ACTIVE_LOANS) return false;
+
     QSqlQuery query6;
 
     query6.prepare("UPDATE items SET status_ = 'CheckedOut' WHERE itemid_ = :itemId");
@@ -594,6 +596,201 @@ bool LibrarySystem::isLoanedBy(int itemId, int patronId) const {
     return true;
 }
 
+// Librrarian Operation
+
+bool LibrarySystem::removeItemFromCatalogue(int librarianId, int itemId){
+    auto it = usersById_.find(librarianId);
+    if (it == usersById_.end()) return false;
+    if (it->second->role() != Role::Librarian) return false;
+
+    QSqlQuery query1;
+    query1.prepare(
+        "SELECT * FROM  items WHERE itemid_ = :itemid_"
+    );
+
+    query1.bindValue(":itemid_", itemId);
+    if (!query1.exec() || !query1.next()) return false;
+
+    std::string status_ = query1.value("status_").toString().toStdString();
+
+    if(status_ != "Available") return false;
+
+    QSqlQuery query2;
+    query2.prepare("DELETE FROM holds WHERE itemid_ = :itemid_");
+    query2.bindValue(":itemid_", itemId);
+
+    if (!query2.exec()) return false;
+
+    QSqlQuery query3;
+    query3.prepare("DELETE FROM items WHERE itemid_ = :itemid_");
+    query3.bindValue(":itemid_", itemId);
+
+    if (!query3.exec()) return false;
+
+
+    removeItemByID(itemId);
+    return true;
+
+
+}
+
+void LibrarySystem::removeItemByID(int itemid_){
+
+    auto itemStart = std::remove_if(
+        items_.begin(),
+        items_.end(),
+        [itemid_]( std::shared_ptr<Item>& p) {
+            return (p != nullptr && p->id() == itemid_);
+        }
+    );
+
+    items_.erase(itemStart, items_.end());
+}
+
+bool LibrarySystem::addItemToCatalogue(int librarianID, const ItemInDB& item){
+
+    auto it = usersById_.find(librarianID);
+    if (it == usersById_.end()) return false;
+    if (it->second->role() != Role::Librarian) return false;
+
+    QSqlQuery query1;
+
+    query1.prepare(
+        "INSERT INTO items (kind_, title_, creator_, publicationYear_, dewey_, isbn_, "
+        "issueNumber_, publicationDate_, genre_, rating_, status_) "
+        "VALUES (:kind_, :title_, :creator_, :publicationYear_, :dewey_, :isbn_, "
+        ":issueNumber_, :publicationDate_, :genre_, :rating_, :status_)"
+    );
+
+    query1.bindValue(":kind_", QString::fromStdString(item.kind_));
+    query1.bindValue(":title_", QString::fromStdString(item.title_));
+    query1.bindValue(":creator_", QString::fromStdString(item.creator_));
+    query1.bindValue(":publicationYear_", item.publicationYear_);
+
+    QVariant deweyVal_= item.dewey_.has_value() ? QVariant(QString::fromStdString(item.dewey_.value())) : QVariant(QVariant::String);
+
+    query1.bindValue(":dewey_", deweyVal_);
+
+    QVariant isbnVal_= item.isbn_.has_value() ? QVariant(QString::fromStdString(item.isbn_.value())) : QVariant(QVariant::String);
+
+    query1.bindValue(":isbn_", isbnVal_);
+
+    QVariant issueNumberVal_ = item.issueNumber_.has_value()  ? QVariant(item.issueNumber_.value()) : QVariant(QVariant::Int);
+
+    query1.bindValue(":issueNumber_", issueNumberVal_);
+
+    QVariant publicationDateVal_ = item.publicationDate_.has_value() ? QVariant(item.publicationDate_.value().toString("yyyy-MM-dd")) : QVariant(QVariant::String);
+
+    query1.bindValue(":publicationDate_", publicationDateVal_);
+
+    QVariant genreVal_ = item.genre_.has_value() ? QVariant(QString::fromStdString(item.genre_.value())) : QVariant(QVariant::String);
+
+    query1.bindValue(":genre_", genreVal_);
+
+    QVariant ratingVal_ = item.rating_.has_value()? QVariant(QString::fromStdString(item.rating_.value())) : QVariant(QVariant::String);
+
+    query1.bindValue(":rating_", ratingVal_);
+
+    QString statusVal_ = "Available";
+
+    query1.bindValue(":status_", statusVal_);
+
+    if (!query1.exec()) {
+        qDebug() << "ERROR: " << query1.lastError();
+        return false;
+    }
+
+    int lastInsertedID = query1.lastInsertId().toInt();
+    if (lastInsertedID < 1) {
+        qDebug() << "ERROR: Somthing unexpected happened while inserting.";
+        return false;
+    }
+
+
+    QSqlQuery query2;
+    query2.prepare("SELECT * FROM items WHERE itemid_ = :itemid_");
+    query2.bindValue(":itemid_", lastInsertedID);
+
+    if (!query2.exec() || !query2.next()) return false;
+
+    int itemid_ = query2.value("itemid_").toInt();
+    std::string kind_ = query2.value("kind_").toString().toStdString();
+    std::string title_ = query2.value("title_").toString().toStdString();
+    std::string creator_ = query2.value("creator_").toString().toStdString();
+    int publicationYear_ = query2.value("publicationYear_").toInt();
+
+    std::optional<std::string> dewey_ = std::nullopt;
+    QVariant deweyVal = query2.value("dewey_");
+    if (!deweyVal.isNull()) {
+        dewey_ = deweyVal.toString().toStdString();
+    }
+
+    std::optional<std::string> isbn_ = std::nullopt;
+    QVariant isbnVal = query2.value("isbn_");
+    if (!isbnVal.isNull()) {
+        isbn_ = isbnVal.toString().toStdString();
+    }
+
+    int issueNumber_ = -1;
+    QVariant issueNumberVal = query2.value("issueNumber_");
+    if (!issueNumberVal.isNull()) {
+        issueNumber_ = issueNumberVal.toInt();
+    }
+
+    QDate publicationDate_;
+    QVariant publicationDateVal = query2.value("publicationDate_");
+    if (!publicationDateVal.isNull()) {
+        QString pubString_ = publicationDateVal.toString();
+        publicationDate_ = QDate::fromString(pubString_, "yyyy-MM-dd");
+    }
+
+    std::string genre_ = "";
+    QVariant genreVal = query2.value("genre_");
+    if (!genreVal.isNull()) {
+        genre_ = genreVal.toString().toStdString();
+    }
+
+    std::string rating_ = "";
+    QVariant ratingVal = query2.value("rating_");
+    if (!ratingVal.isNull()) {
+        rating_ = ratingVal.toString().toStdString();
+    }
+
+    std::string status_ = query2.value("status_").toString().toStdString();
+    ItemStatus itemStatus;
+    if (status_ == "CheckedOut") {
+        itemStatus = ItemStatus::CheckedOut;
+    } else {
+        itemStatus = ItemStatus::Available;
+    }
+
+    if (kind_ == "FictionBook") {
+
+        items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_,BookType::Fiction, dewey_, isbn_, itemStatus));
+
+    } else if (kind_ == "NonFictionBook") {
+
+        items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_, BookType::NonFiction, dewey_, isbn_, itemStatus));
+
+    } else if (kind_ == "Magazine") {
+
+        items_.push_back(std::make_shared<Magazine>(itemid_, title_, creator_, publicationYear_, issueNumber_, publicationDate_, itemStatus));
+
+    } else if (kind_ == "Movie") {
+
+        items_.push_back(std::make_shared<Movie>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
+
+    } else if (kind_ == "VideoGame") {
+
+        items_.push_back(std::make_shared<VideoGame>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
+    }
+
+    return true;
+
+}
+
+
+
 // log of patron transaction operations
 //void LibrarySystem::logUserActivity(int patronID, const std::string& activity) {
 //    QDateTime currentDateAndTime= QDateTime::currentDateTime();
@@ -612,3 +809,6 @@ bool LibrarySystem::isLoanedBy(int itemId, int patronId) const {
 
 
 } // namespace hinlibs
+
+
+

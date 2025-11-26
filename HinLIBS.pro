@@ -30,7 +30,8 @@ HEADERS += \
     models/hinlibs.h \
     gui/LoginWindow.h \
     gui/PatronWindow.h \
-    gui/CatalogueModel.h
+    gui/CatalogueModel.h \
+    models/ItemInDB.h
 
 FORMS += \
     gui/LoginWindow.ui \
@@ -44,7 +45,6 @@ INCLUDEPATH += \
     $$PWD/gui
 
 
-// need to find a better alternative to this for the DB
 DB_FILES = db/hinlibs.sqlite3
 
 for(file, DB_FILES) {

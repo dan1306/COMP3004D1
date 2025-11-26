@@ -14,6 +14,7 @@
 #include "Movie.h"
 #include "VideoGame.h"
 #include "Magazine.h"
+#include "itemInDB.h"
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -65,9 +66,17 @@ public:
     std::vector<AccountLoan> getAccountLoans(int patronId, const QDate& today = QDate::currentDate()) const;
     std::vector<AccountHold> getAccountHolds(int patronId) const;
 
+    // Libraraian Operations
+    bool removeItemFromCatalogue(int librarianID, int itemId);
+    bool addItemToCatalogue(int librarianID, const ItemInDB& data);
+    void removeItemByID(int itemid_);
+
     // Constants
     static constexpr int MAX_ACTIVE_LOANS = 3;
     static constexpr int LOAN_PERIOD_DAYS = 14;
+
+
+
 
 private:
     QSqlDatabase db_;
