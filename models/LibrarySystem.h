@@ -70,6 +70,7 @@ public:
     bool removeItemFromCatalogue(int librarianID, int itemId);
     bool addItemToCatalogue(int librarianID, const ItemInDB& data);
     void removeItemByID(int itemid_);
+    std::shared_ptr<User> LibrarianFIndPatronByName(const std::string& name);
 
     // Constants
     static constexpr int MAX_ACTIVE_LOANS = 3;

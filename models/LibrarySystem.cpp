@@ -790,6 +790,25 @@ bool LibrarySystem::addItemToCatalogue(int librarianID, const ItemInDB& item){
 }
 
 
+std::shared_ptr<User> LibrarySystem::LibrarianFindPatronByName(const std::string& name) const {
+
+
+    QSqlQuery query1;
+
+    query1.prepare(
+        "SELECT * FROM users WHERE LOWER(name_) LIKE '%' || LOWER(:name) || '%'"
+    );
+
+
+    query1.bindValue(":name", QString::fromStdString(name));
+
+    if (!query1.exec() ||!query1.next()) return nullptr;
+    std::string role_ = query1.value("role_").toString().toStdString();
+
+    if (role_ != "Patron") return nullptr;
+    std::string name_ = query1.value("name_").toString().toStdString();
+    return findUserByName(name_);
+}
 
 // log of patron transaction operations
 //void LibrarySystem::logUserActivity(int patronID, const std::string& activity) {
