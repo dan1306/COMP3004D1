@@ -16,7 +16,9 @@ SOURCES += \
     models/hinlibs.cpp \
     gui/LoginWindow.cpp \
     gui/PatronWindow.cpp \
-    gui/CatalogueModel.cpp
+    gui/CatalogueModel.cpp \
+    gui/LibrarianWindow.cpp \
+    gui/AddItemDialog.cpp
 
 HEADERS += \
     models/User.h \
@@ -31,11 +33,15 @@ HEADERS += \
     gui/LoginWindow.h \
     gui/PatronWindow.h \
     gui/CatalogueModel.h \
+    gui/LibrarianWindow.h \
+    gui/AddItemDialog.h \
     models/ItemInDB.h
 
 FORMS += \
     gui/LoginWindow.ui \
-    gui/PatronWindow.ui
+    gui/PatronWindow.ui \
+    gui/LibrarianWindow.ui \
+    gui/AddItemDialog.ui
 
 QT += core gui widgets sql
 

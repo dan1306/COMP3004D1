@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AddItemDialog</class>
+ <widget class="QDialog" name="AddItemDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>500</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Add Item to Catalogue</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="labelType">
+       <property name="text">
+        <string>Item type:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="comboType"/>
+     </item>
+
+     <item row="1" column="0">
+      <widget class="QLabel" name="labelTitle">
+       <property name="text">
+        <string>Title:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="lineTitle"/>
+     </item>
+
+     <item row="2" column="0">
+      <widget class="QLabel" name="labelCreator">
+       <property name="text">
+        <string>Author/Creator:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="lineCreator"/>
+     </item>
+
+     <item row="3" column="0">
+      <widget class="QLabel" name="labelYear">
+       <property name="text">
+        <string>Publication Year:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QSpinBox" name="spinYear"/>
+     </item>
+
+     <item row="4" column="0">
+      <widget class="QLabel" name="labelDewey">
+       <property name="text">
+        <string>Dewey Decimal:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="lineDewey"/>
+     </item>
+
+     <item row="5" column="0">
+      <widget class="QLabel" name="labelIsbn">
+       <property name="text">
+        <string>ISBN:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QLineEdit" name="lineIsbn"/>
+     </item>
+
+     <item row="6" column="0">
+      <widget class="QLabel" name="labelIssueNumber">
+       <property name="text">
+        <string>Issue Number:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QSpinBox" name="spinIssueNumber"/>
+     </item>
+
+     <item row="7" column="0">
+      <widget class="QLabel" name="labelPublicationDate">
+       <property name="text">
+        <string>Publication Date:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QDateEdit" name="datePublication">
+       <property name="calendarPopup">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+
+     <item row="8" column="0">
+      <widget class="QLabel" name="labelGenre">
+       <property name="text">
+        <string>Genre:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QLineEdit" name="lineGenre"/>
+     </item>
+
+     <item row="9" column="0">
+      <widget class="QLabel" name="labelRating">
+       <property name="text">
+        <string>Rating:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QLineEdit" name="lineRating"/>
+     </item>
+
+    </layout>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>AddItemDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>348</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>249</x>
+     <y>187</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>AddItemDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>348</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>249</x>
+     <y>187</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

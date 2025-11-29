@@ -1,6 +1,7 @@
 #include "LoginWindow.h"
 #include "ui_LoginWindow.h"
 #include "PatronWindow.h"
+#include "LibrarianWindow.h"
 
 #include <QPushButton>
 #include <QLineEdit>
@@ -25,20 +26,34 @@ void LoginWindow::onLogin() {
         return;
     }
 
-    // Adjust to your LibrarySystem API if the function name differs
     auto user = system_->findUserByName(name);
     if (!user) {
         QMessageBox::warning(this, "Login Failed", "User not found.");
         return;
     }
-    if (user->role() != hinlibs::Role::Patron) {
-        QMessageBox::information(this, "Not Implemented", "Only Patron features are implemented for D1.");
-        return;
-    }
 
-    auto patron = std::static_pointer_cast<hinlibs::Patron>(user);
-    auto* w = new PatronWindow(system_, patron, nullptr);
-    w->setAttribute(Qt::WA_DeleteOnClose);
-    w->show();
-    close(); // clear previous user context per D1
+    using hinlibs::Role;
+
+    switch (user->role()) {
+    case Role::Patron: {
+        auto patron = std::static_pointer_cast<hinlibs::Patron>(user);
+        auto* w = new PatronWindow(system_, patron, nullptr);
+        w->setAttribute(Qt::WA_DeleteOnClose);
+        w->show();
+        close(); // clear previous user context
+        break;
+    }
+    case Role::Librarian: {
+        auto* w = new LibrarianWindow(system_, user, nullptr);
+        w->setAttribute(Qt::WA_DeleteOnClose);
+        w->show();
+        close();
+        break;
+    }
+    case Role::Administrator: {
+        QMessageBox::information(this, "Admin",
+                                 "Administrator UI is not implemented for this deliverable.");
+        break;
+    }
+    }
 }
