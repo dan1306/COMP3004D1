@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>LibrarianWindow</class>
+ <widget class="QMainWindow" name="LibrarianWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>HinLIBS - Librarian</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_central">
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <!-- Catalogue Tab -->
+      <widget class="QWidget" name="tabCatalogue">
+       <attribute name="title">
+        <string>Catalogue</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_catalogue">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_catalogueButtons">
+          <item>
+           <widget class="QPushButton" name="btnAddItem">
+            <property name="text">
+             <string>Add Item</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnRemoveItem">
+            <property name="text">
+             <string>Remove Item</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_catalogueButtons">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnRefreshCatalogue">
+            <property name="text">
+             <string>Refresh</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableView" name="tableCatalogue">
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SingleSelection</enum>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+
+      <!-- Return-on-Behalf Tab -->
+      <widget class="QWidget" name="tabReturn">
+       <attribute name="title">
+        <string>Return on Behalf</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_return">
+        <!-- Patron search row -->
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_searchPatron">
+          <item>
+           <widget class="QLabel" name="labelPatronSearch">
+            <property name="text">
+             <string>Patron name:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="linePatronSearch">
+            <property name="placeholderText">
+             <string>Enter patron name...</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnSearchPatron">
+            <property name="text">
+             <string>Search</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+
+        <!-- Loans table -->
+        <item>
+         <widget class="QTableView" name="tableLoans">
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SingleSelection</enum>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+
+        <!-- Bottom buttons: Return & Logout -->
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_returnButtons">
+          <item>
+           <spacer name="horizontalSpacer_returnButtons">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnReturnOnBehalf">
+            <property name="text">
+             <string>Return Selected Item</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnLogout">
+            <property name="text">
+             <string>Log Out</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>900</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

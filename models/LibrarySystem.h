@@ -41,26 +41,23 @@ public:
     const std::vector<std::shared_ptr<Item>>& allItems() const { return items_; }
 
     // --- Patron operations ---
-    bool borrowItem(int patronId, int itemId);                       // today = QDate::currentDate()
+    bool borrowItem(int patronId, int itemId);                    
     bool returnItem(int patronId, int itemId);
     bool placeHold(int patronId, int itemId);
     bool cancelHold(int patronId, int itemId);
     bool isLoanedBy(int itemId, int patronId) const;
 
-//    // log of patron transaction operations
-//    void logUserActivity(int patronID, const std::string& activity);
-//    std::vector<std::string> getPatronUserActivities(int patronID) const;
 
     struct AccountLoan {
         int itemId;
         std::string title;
         QDate dueDate;
-        int daysRemaining; // can be negative if overdue (no fines in D1)
+        int daysRemaining; 
     };
     struct AccountHold {
         int itemId;
         std::string title;
-        int queuePosition; // 1-based
+        int queuePosition;
     };
 
     std::vector<AccountLoan> getAccountLoans(int patronId, const QDate& today = QDate::currentDate()) const;
@@ -70,7 +67,8 @@ public:
     bool removeItemFromCatalogue(int librarianID, int itemId);
     bool addItemToCatalogue(int librarianID, const ItemInDB& data);
     void removeItemByID(int itemid_);
-    std::shared_ptr<User> LibrarianFIndPatronByName(const std::string& name);
+ std::shared_ptr<User> LibrarianFindPatronByName(const std::string& name) const;
+
 
     // Constants
     static constexpr int MAX_ACTIVE_LOANS = 3;
