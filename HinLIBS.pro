@@ -51,16 +51,19 @@ INCLUDEPATH += \
     $$PWD/gui
 
 
-DB_FILES = db/hinlibs.sqlite3
+DB_SOURCE_FILE = db/hinlibs.sqlite3
 
-for(file, DB_FILES) {
-    COPIED_DB = $$OUT_PWD/$$file
-    DBDIR = $$dirname(COPIED_DB)
-    !exists($$DBDIR) {
-        system(mkdir -p $$DBDIR)
-    }
-    system(cp $$PWD/$$file $$COPIED_DB)
+COPIED_SOURCE_INTO_BUILD_DESTINATION = $$OUT_PWD/$$DB_SOURCE_FILE
+
+NEW_DB_DIR = $$dirname(COPIED_SOURCE_INTO_BUILD_DESTINATION)
+
+!exists($$NEW_DB_DIR) {
+    system(mkdir -p $$NEW_DB_DIR)
 }
+
+system(cp $$PWD/$$DB_SOURCE_FILE $$COPIED_SOURCE_INTO_BUILD_DESTINATION)
+
+
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
