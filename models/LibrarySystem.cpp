@@ -52,7 +52,7 @@ void LibrarySystem::getUsersFromDB(){
 }
 
 void LibrarySystem::getItemsFromDB() {
-
+    items_.clear();
     QSqlQuery query;
     query.prepare("SELECT * FROM items");
 
@@ -136,7 +136,10 @@ void LibrarySystem::getItemsFromDB() {
     }
 }
 
-
+const std::vector<std::shared_ptr<Item>>& LibrarySystem::allItems(){
+    getItemsFromDB();
+    return items_;
+}
 
 std::shared_ptr<User> LibrarySystem::findUserByName(const std::string& name) const {
 
@@ -230,16 +233,17 @@ bool LibrarySystem::borrowItem(int patronId, int itemId) {
     if (!query7.exec()) return false;
 
 
-    for (auto& i : items_) {
-        if (i->id() == itemId) {
-            i->setStatus(ItemStatus::CheckedOut);
-            break;
-        }
-    }
+//    for (auto& i : items_) {
+//        if (i->id() == itemId) {
+//            i->setStatus(ItemStatus::CheckedOut);
+//            break;
+//        }
+//    }
 
     Loan loan{ itemId, patronId, QDate::currentDate(), QDate::currentDate().addDays(LOAN_PERIOD_DAYS) };
     loansByItemId_[itemId] = loan;
 
+    getItemsFromDB();
     return true;
 
 }
@@ -280,94 +284,21 @@ bool LibrarySystem::returnItem(int patronId, int itemId) {
         loansByItemId_.erase(it);
     }
 
-    for (auto& itemPtr : items_) {
-        if (itemPtr->id() == itemId) {
-            itemPtr->setStatus(ItemStatus::Available);
-            break;
-        }
-    }
+//    for (auto& itemPtr : items_) {
+//        if (itemPtr->id() == itemId) {
+//            itemPtr->setStatus(ItemStatus::Available);
+//            qDebug() << "Retturning ITEM";
+//            break;
+//        }
+//    }
+
+    getItemsFromDB();
 
     return true;
 
 
 }
 
-//bool LibrarySystem::placeHold(int patronId, int itemId) {
-
-//        QSqlQuery query1;
-//        query1.prepare("SELECT userid_, role_ FROM users WHERE userid_ = :patronId");
-//        query1.bindValue(":patronId", patronId);
-//        if (!query1.exec() || !query1.next()) {
-//            return false;
-//        }
-
-//        std::string role_ = query1.value("role_").toString().toStdString();
-
-//        if(role_ != "Patron"){
-//            return false;
-//        }
-
-//        QSqlQuery query2;
-
-//        query2.prepare("SELECT status_ FROM items WHERE itemid_ = :itemId");
-//        query2.bindValue(":itemId", itemId);
-//        if (!query2.exec() || !query2.next()) {
-//            return false;
-//        }
-
-//        std::string status_ = query2.value("status_").toString().toStdString();
-
-//        if ( status_ != "CheckedOut") return false;
-
-//        QSqlQuery amIfirstInTheHoldQueue;
-
-//        amIfirstInTheHoldQueue.prepare("SELECT * FROM holds where itemid_ = :itemId  ORDER BY holdid_ ASC");
-//        amIfirstInTheHoldQueue.bindValue(":itemId", itemId);
-
-//        if(!amIfirstInTheHoldQueue.exec()) return false;
-//        if (status_ == "Available") {
-//            if (amIfirstInTheHoldQueue.next()) {
-//                if (amIfirstInTheHoldQueue.value("userid_").toInt() == patronId) {
-//                    }
-//                }
-//        }
-
-
-
-//        QSqlQuery query3;
-
-//        query3.prepare("SELECT userid_, itemid_ FROM loans WHERE itemid_ = :itemId AND userid_ = :patronId");
-//        query3.bindValue(":itemId", itemId);
-//        query3.bindValue(":patronId", patronId);
-//        if (query3.exec() && query3.next()) {
-//            return false;
-//        }
-
-
-//        QSqlQuery query4;
-
-//        query4.prepare("SELECT userid_, itemid_ FROM holds WHERE itemid_ = :itemId AND userid_ = :patronId");
-//        query4.bindValue(":itemId", itemId);
-//        query4.bindValue(":patronId", patronId);
-//        if (query4.exec() && query4.next()) {
-//            return false;
-//        }
-
-//        QSqlQuery query5;
-//        query5.prepare("INSERT INTO holds (itemid_, userid_) VALUES (:itemId, :patronId)");
-//        query5.bindValue(":itemId", itemId);
-//        query5.bindValue(":patronId", patronId);
-
-//        if (!query5.exec()) {
-//             qDebug() << "Error:" << query5.lastError().text();
-//             return false;
-//        }
-
-//        return true;
-
-//}
-
-// this one is a bit complicated the one above I  tried to implement this logic but now it is just there as reference
 bool LibrarySystem::placeHold(int patronId, int itemId) {
 
         QSqlQuery query1;
@@ -441,10 +372,6 @@ bool LibrarySystem::placeHold(int patronId, int itemId) {
         return true;
 
 }
-
-
-
-
 
 
 bool LibrarySystem::cancelHold(int patronId, int itemId) {
@@ -628,24 +555,25 @@ bool LibrarySystem::removeItemFromCatalogue(int librarianId, int itemId){
     if (!query3.exec()) return false;
 
 
-    removeItemByID(itemId);
+
+    getItemsFromDB();
     return true;
 
 
 }
 
-void LibrarySystem::removeItemByID(int itemid_){
+//void LibrarySystem::removeItemByID(int itemid_){
 
-    auto itemStart = std::remove_if(
-        items_.begin(),
-        items_.end(),
-        [itemid_]( std::shared_ptr<Item>& p) {
-            return (p != nullptr && p->id() == itemid_);
-        }
-    );
+//    auto itemStart = std::remove_if(
+//        items_.begin(),
+//        items_.end(),
+//        [itemid_]( std::shared_ptr<Item>& p) {
+//            return (p != nullptr && p->id() == itemid_);
+//        }
+//    );
 
-    items_.erase(itemStart, items_.end());
-}
+//    items_.erase(itemStart, items_.end());
+//}
 
 bool LibrarySystem::addItemToCatalogue(int librarianID, const ItemInDB& item){
 
@@ -700,90 +628,94 @@ bool LibrarySystem::addItemToCatalogue(int librarianID, const ItemInDB& item){
         return false;
     }
 
-    int lastInsertedID = query1.lastInsertId().toInt();
-    if (lastInsertedID < 1) {
-        qDebug() << "ERROR: Somthing unexpected happened while inserting.";
-        return false;
-    }
+// Commented out section uses updates in memory data
+//    int lastInsertedID = query1.lastInsertId().toInt();
+//    if (lastInsertedID < 1) {
+//        qDebug() << "ERROR: Somthing unexpected happened while inserting.";
+//        return false;
+//    }
 
 
-    QSqlQuery query2;
-    query2.prepare("SELECT * FROM items WHERE itemid_ = :itemid_");
-    query2.bindValue(":itemid_", lastInsertedID);
+//    QSqlQuery query2;
+//    query2.prepare("SELECT * FROM items WHERE itemid_ = :itemid_");
+//    query2.bindValue(":itemid_", lastInsertedID);
 
-    if (!query2.exec() || !query2.next()) return false;
+//    if (!query2.exec() || !query2.next()) return false;
 
-    int itemid_ = query2.value("itemid_").toInt();
-    std::string kind_ = query2.value("kind_").toString().toStdString();
-    std::string title_ = query2.value("title_").toString().toStdString();
-    std::string creator_ = query2.value("creator_").toString().toStdString();
-    int publicationYear_ = query2.value("publicationYear_").toInt();
+//    int itemid_ = query2.value("itemid_").toInt();
+//    std::string kind_ = query2.value("kind_").toString().toStdString();
+//    std::string title_ = query2.value("title_").toString().toStdString();
+//    std::string creator_ = query2.value("creator_").toString().toStdString();
+//    int publicationYear_ = query2.value("publicationYear_").toInt();
 
-    std::optional<std::string> dewey_ = std::nullopt;
-    QVariant deweyVal = query2.value("dewey_");
-    if (!deweyVal.isNull()) {
-        dewey_ = deweyVal.toString().toStdString();
-    }
+//    std::optional<std::string> dewey_ = std::nullopt;
+//    QVariant deweyVal = query2.value("dewey_");
+//    if (!deweyVal.isNull()) {
+//        dewey_ = deweyVal.toString().toStdString();
+//    }
 
-    std::optional<std::string> isbn_ = std::nullopt;
-    QVariant isbnVal = query2.value("isbn_");
-    if (!isbnVal.isNull()) {
-        isbn_ = isbnVal.toString().toStdString();
-    }
+//    std::optional<std::string> isbn_ = std::nullopt;
+//    QVariant isbnVal = query2.value("isbn_");
+//    if (!isbnVal.isNull()) {
+//        isbn_ = isbnVal.toString().toStdString();
+//    }
 
-    int issueNumber_ = -1;
-    QVariant issueNumberVal = query2.value("issueNumber_");
-    if (!issueNumberVal.isNull()) {
-        issueNumber_ = issueNumberVal.toInt();
-    }
+//    int issueNumber_ = -1;
+//    QVariant issueNumberVal = query2.value("issueNumber_");
+//    if (!issueNumberVal.isNull()) {
+//        issueNumber_ = issueNumberVal.toInt();
+//    }
 
-    QDate publicationDate_;
-    QVariant publicationDateVal = query2.value("publicationDate_");
-    if (!publicationDateVal.isNull()) {
-        QString pubString_ = publicationDateVal.toString();
-        publicationDate_ = QDate::fromString(pubString_, "yyyy-MM-dd");
-    }
+//    QDate publicationDate_;
+//    QVariant publicationDateVal = query2.value("publicationDate_");
+//    if (!publicationDateVal.isNull()) {
+//        QString pubString_ = publicationDateVal.toString();
+//        publicationDate_ = QDate::fromString(pubString_, "yyyy-MM-dd");
+//    }
 
-    std::string genre_ = "";
-    QVariant genreVal = query2.value("genre_");
-    if (!genreVal.isNull()) {
-        genre_ = genreVal.toString().toStdString();
-    }
+//    std::string genre_ = "";
+//    QVariant genreVal = query2.value("genre_");
+//    if (!genreVal.isNull()) {
+//        genre_ = genreVal.toString().toStdString();
+//    }
 
-    std::string rating_ = "";
-    QVariant ratingVal = query2.value("rating_");
-    if (!ratingVal.isNull()) {
-        rating_ = ratingVal.toString().toStdString();
-    }
+//    std::string rating_ = "";
+//    QVariant ratingVal = query2.value("rating_");
+//    if (!ratingVal.isNull()) {
+//        rating_ = ratingVal.toString().toStdString();
+//    }
 
-    std::string status_ = query2.value("status_").toString().toStdString();
-    ItemStatus itemStatus;
-    if (status_ == "CheckedOut") {
-        itemStatus = ItemStatus::CheckedOut;
-    } else {
-        itemStatus = ItemStatus::Available;
-    }
+//    std::string status_ = query2.value("status_").toString().toStdString();
+//    ItemStatus itemStatus;
+//    if (status_ == "CheckedOut") {
+//        itemStatus = ItemStatus::CheckedOut;
+//    } else {
+//        itemStatus = ItemStatus::Available;
+//    }
 
-    if (kind_ == "FictionBook") {
+//    if (kind_ == "FictionBook") {
 
-        items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_,BookType::Fiction, dewey_, isbn_, itemStatus));
+//        items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_,BookType::Fiction, dewey_, isbn_, itemStatus));
 
-    } else if (kind_ == "NonFictionBook") {
+//    } else if (kind_ == "NonFictionBook") {
 
-        items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_, BookType::NonFiction, dewey_, isbn_, itemStatus));
+//        items_.push_back(std::make_shared<Book>(itemid_, title_, creator_, publicationYear_, BookType::NonFiction, dewey_, isbn_, itemStatus));
 
-    } else if (kind_ == "Magazine") {
+//    } else if (kind_ == "Magazine") {
 
-        items_.push_back(std::make_shared<Magazine>(itemid_, title_, creator_, publicationYear_, issueNumber_, publicationDate_, itemStatus));
+//        items_.push_back(std::make_shared<Magazine>(itemid_, title_, creator_, publicationYear_, issueNumber_, publicationDate_, itemStatus));
 
-    } else if (kind_ == "Movie") {
+//    } else if (kind_ == "Movie") {
 
-        items_.push_back(std::make_shared<Movie>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
+//        items_.push_back(std::make_shared<Movie>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
 
-    } else if (kind_ == "VideoGame") {
+//    } else if (kind_ == "VideoGame") {
 
-        items_.push_back(std::make_shared<VideoGame>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
-    }
+//        items_.push_back(std::make_shared<VideoGame>(itemid_, title_, creator_, publicationYear_, genre_, rating_, itemStatus));
+//    }
+
+    // here we are cleearing the items in mmemoy data and refetching directly  from the database  so the data reeflects the most up to  date changes,  modificatiion and addiitions
+    getItemsFromDB();
 
     return true;
 
@@ -810,21 +742,6 @@ std::shared_ptr<User> LibrarySystem::LibrarianFindPatronByName(const std::string
     return findUserByName(name_);
 }
 
-// log of patron transaction operations
-//void LibrarySystem::logUserActivity(int patronID, const std::string& activity) {
-//    QDateTime currentDateAndTime= QDateTime::currentDateTime();
-//    std::string currentDateAndTimeStringWithActivity = currentDateAndTime.toString("yyyy-MM-dd hh:mm:ss").toStdString() + " " + activity;
-//    log_of_user_activites[patronID].push_back(currentDateAndTimeStringWithActivity);
-//};
-
-//std::vector<std::string> LibrarySystem::getPatronUserActivities(int patronID) const {
-//    auto find_id = log_of_user_activites.find(patronID);
-//    if(find_id != log_of_user_activites.end()){
-//        return find_id->second;
-//    };
-//    std::vector<std::string>  empty;
-//    return empty;
-//};
 
 
 } // namespace hinlibs
