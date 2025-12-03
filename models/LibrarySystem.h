@@ -38,7 +38,7 @@ public:
 
     // --- Items ---
     std::shared_ptr<Item> getItemById(int itemId) const;
-    const std::vector<std::shared_ptr<Item>>& allItems() const { return items_; }
+    const std::vector<std::shared_ptr<Item>>& allItems();
 
     // --- Patron operations ---
     bool borrowItem(int patronId, int itemId);                    
@@ -66,8 +66,8 @@ public:
     // Libraraian Operations
     bool removeItemFromCatalogue(int librarianID, int itemId);
     bool addItemToCatalogue(int librarianID, const ItemInDB& data);
-    void removeItemByID(int itemid_);
- std::shared_ptr<User> LibrarianFindPatronByName(const std::string& name) const;
+//    void removeItemByID(int itemid_);
+    std::shared_ptr<User> LibrarianFindPatronByName(const std::string& name) const;
 
 
     // Constants
