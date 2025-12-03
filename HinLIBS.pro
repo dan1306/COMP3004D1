@@ -61,7 +61,9 @@ NEW_DB_DIR = $$dirname(COPIED_SOURCE_INTO_BUILD_DESTINATION)
     system(mkdir -p $$NEW_DB_DIR)
 }
 
-system(cp $$PWD/$$DB_SOURCE_FILE $$COPIED_SOURCE_INTO_BUILD_DESTINATION)
+!exists($$COPIED_SOURCE_INTO_BUILD_DESTINATION) {
+    system(cp -f $$PWD/$$DB_SOURCE_FILE $$COPIED_SOURCE_INTO_BUILD_DESTINATION)
+}
 
 
 qnx: target.path = /tmp/$${TARGET}/bin
